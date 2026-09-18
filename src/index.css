@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root { color-scheme: light; }
+  html {
+    scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  body {
+    @apply bg-canvas text-ink font-sans antialiased;
+    line-height: 1.6;
+    overflow-x: hidden;
+    max-width: 100vw;
+    width: 100%;
+  }
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    min-height: 100vh;
+  }
+  h1, h2, h3, h4 { @apply font-display text-ink; line-height: 1.2; }
+  :focus-visible { @apply outline-none ring-2 ring-sea-500 ring-offset-2 ring-offset-white rounded-md; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold
+           transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply btn bg-brand-500 text-ink-deep hover:bg-brand-600 hover:text-white; }
+  .btn-dark { @apply btn bg-ink-deep text-white hover:bg-ink-darker; }
+  .btn-ghost { @apply btn border border-white/30 text-white hover:bg-white/10; }
+  .btn-outline { @apply btn border border-ink/15 text-ink-soft hover:border-ink/40 hover:text-ink; }
+
+  .field {
+    @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-sm text-ink
+           placeholder:text-ink-mute/70 transition-colors focus:border-sea-500;
+  }
+  .field-error { @apply border-warn focus:border-warn; }
+  .label { @apply mb-1.5 block text-sm font-medium text-ink-soft; }
+  .help { @apply mt-1.5 text-xs text-ink-mute; }
+  .error-text { @apply mt-1.5 flex items-center gap-1 text-xs font-medium text-warn; }
+
+  .section { @apply py-14 md:py-20 lg:py-24; }
+  .eyebrow { @apply text-sm font-semibold text-sea-600; }
+  .card { @apply rounded-2xl border border-ink/[.07] bg-white shadow-card; }
+}
+
+/* Layered Mediterranean backdrop used by the hero and the CTA band. */
+.sea-backdrop {
+  background:
+    radial-gradient(120% 80% at 82% 8%, rgba(255,149,0,.30) 0%, rgba(255,149,0,0) 55%),
+    radial-gradient(90% 70% at 8% 100%, rgba(14,165,233,.35) 0%, rgba(14,165,233,0) 60%),
+    linear-gradient(165deg, #16283c 0%, #1F2937 45%, #0C2438 100%);
+}
+.grain::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5;
+  background-image: radial-gradient(rgba(255,255,255,.07) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+.reveal { opacity: 0; transform: translateY(20px); }
+.reveal.is-in { opacity: 1; transform: none; transition: opacity .7s cubic-bezier(.22,.9,.32,1), transform .7s cubic-bezier(.22,.9,.32,1); }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } }
