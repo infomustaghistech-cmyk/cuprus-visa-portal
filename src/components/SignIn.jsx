@@ -1,96 +1,212 @@
 import { useState } from 'react'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, CheckCircle2, Lock, Mail, User } from 'lucide-react'
 import Modal from './Modal'
+import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 export default function SignIn({ open, onClose, onSwitchToApply }) {
-  const [form, setForm] = useState({ email: '', password: '', remember: true })
+  const { signIn, signUp } = useAuth()
+  const { showToast } = useToast()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const [done, setDone] = useState(false)
+  const [generalError, setGeneralError] = useState('')
+  const [successMsg, setSuccessMsg] = useState('')
 
   const set = (key) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
+    const value = e.target.value
     setForm((f) => ({ ...f, [key]: value }))
     setErrors((prev) => ({ ...prev, [key]: undefined }))
+    setGeneralError('')
   }
 
   const validate = () => {
     const next = {}
-    if (!EMAIL_RE.test(form.email)) next.email = 'Enter an email address in the format name@example.com.'
-    if (form.password.length < 8) next.password = 'Passwords are at least 8 characters.'
+    if (isSignUp && (form.fullName || '').trim().length < 2) {
+      next.fullName = 'Please enter your full name.'
+    }
+    if (!EMAIL_RE.test(form.email || '')) {
+      next.email = 'Enter a valid email address (e.g. name@domain.com).'
+    }
+    if ((form.password || '').length < 6) {
+      next.password = 'Password must be at least 6 characters.'
+    }
     setErrors(next)
     return Object.keys(next).length === 0
   }
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault()
     if (!validate()) return
     setLoading(true)
-    setTimeout(() => { setLoading(false); setDone(true) }, 900)
+    setGeneralError('')
+    setSuccessMsg('')
+
+    if (isSignUp) {
+      const res = await signUp(form.email || '', form.password || '', { fullName: form.fullName || '' }, false)
+      setLoading(false)
+      if (res.success) {
+        showToast({
+          title: 'Account Created Successfully!',
+          message: 'Your account has been registered in Supabase. Please enter your password to sign in.',
+          type: 'success',
+          duration: 7000
+        })
+        setIsSignUp(false)
+        setForm((f) => ({ ...f, password: '' }))
+        setSuccessMsg('Account created successfully! Please sign in with your credentials.')
+      } else {
+        setGeneralError(res.error || 'Failed to create account.')
+      }
+    } else {
+      const res = await signIn(form.email, form.password)
+      setLoading(false)
+      if (res.success) {
+        showToast({
+          title: 'Signed In Successfully',
+          message: 'Welcome back to Cyprus Visa Portal.',
+          type: 'success',
+          duration: 4000
+        })
+        setSuccessMsg('Signed in successfully!')
+        setTimeout(() => {
+          close()
+          if (onSwitchToApply) onSwitchToApply()
+        }, 600)
+      } else {
+        setGeneralError(res.error || 'Invalid email or password.')
+      }
+    }
   }
 
-  const close = () => { setDone(false); setForm({ email: '', password: '', remember: true }); setErrors({}); onClose() }
+  const close = () => {
+    setForm({ fullName: '', email: '', password: '' })
+    setErrors({})
+    setGeneralError('')
+    setSuccessMsg('')
+    onClose()
+  }
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title={done ? 'Demo sign-in complete' : 'Sign in'}
-      subtitle={done ? undefined : 'This screen is a demo. Nothing is sent anywhere, so use a made-up email and password.'}
+      title={isSignUp ? 'Create an Account' : 'Sign in to Cyprus Portal'}
+      subtitle={
+        isSignUp
+          ? 'Enter your real email and password to create an authenticated profile.'
+          : 'Access your saved visa applications and track your submission status.'
+      }
     >
-      {done ? (
-        <div>
-          <p className="text-sm text-ink-soft">
-            In a real build this is where the applicant dashboard would load. This project has no backend, so the
-            form stops here.
-          </p>
-          <button onClick={close} className="btn-dark mt-5 w-full">Back to the site</button>
+      {successMsg && (
+        <div className="mb-5 flex items-start gap-3 rounded-xl bg-white border border-emerald-300 p-4 text-xs text-gray-800 shadow-xs">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 mt-0.5">
+            <CheckCircle2 size={15} />
+          </div>
+          <div>
+            <p className="font-semibold text-gray-900 text-xs">Account Created Successfully!</p>
+            <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">{successMsg}</p>
+          </div>
         </div>
-      ) : (
-        <form onSubmit={submit} noValidate>
+      )}
+
+      {generalError && (
+        <div className="mb-5 flex items-start gap-3 rounded-xl bg-white border border-rose-300 p-3.5 text-xs text-gray-800 shadow-xs">
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-rose-600 mt-0.5">
+            <AlertCircle size={15} />
+          </div>
+          <p className="font-medium text-rose-700 text-xs leading-relaxed">{generalError}</p>
+        </div>
+      )}
+
+      <form onSubmit={submit} noValidate>
+        {isSignUp && (
           <div className="mb-4">
-            <label className="label" htmlFor="signin-email">Email</label>
+            <label className="label" htmlFor="modal-name">Full Name</label>
+            <div className="relative">
+              <input
+                id="modal-name"
+                type="text"
+                value={form.fullName}
+                onChange={set('fullName')}
+                className={`field pl-9.5 ${errors.fullName ? 'field-error' : ''}`}
+                placeholder="Amina Yusuf"
+                aria-invalid={!!errors.fullName}
+              />
+              <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+            </div>
+            {errors.fullName && <p className="error-text"><AlertCircle size={13} />{errors.fullName}</p>}
+          </div>
+        )}
+
+        <div className="mb-4">
+          <label className="label" htmlFor="modal-email">Email Address</label>
+          <div className="relative">
             <input
-              id="signin-email" type="email" value={form.email} onChange={set('email')}
-              className={`field ${errors.email ? 'field-error' : ''}`} placeholder="name@example.com"
+              id="modal-email"
+              type="email"
+              value={form.email}
+              onChange={set('email')}
+              className={`field pl-9.5 ${errors.email ? 'field-error' : ''}`}
+              placeholder="name@example.com"
               aria-invalid={!!errors.email}
             />
-            {errors.email && <p className="error-text"><AlertCircle size={13} />{errors.email}</p>}
+            <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
+          {errors.email && <p className="error-text"><AlertCircle size={13} />{errors.email}</p>}
+        </div>
 
-          <div className="mb-4">
-            <label className="label" htmlFor="signin-password">Password</label>
+        <div className="mb-5">
+          <label className="label" htmlFor="modal-password">Password</label>
+          <div className="relative">
             <input
-              id="signin-password" type="password" value={form.password} onChange={set('password')}
-              className={`field ${errors.password ? 'field-error' : ''}`} placeholder="At least 8 characters"
+              id="modal-password"
+              type="password"
+              value={form.password}
+              onChange={set('password')}
+              className={`field pl-9.5 ${errors.password ? 'field-error' : ''}`}
+              placeholder="At least 6 characters"
               aria-invalid={!!errors.password}
             />
-            {errors.password && <p className="error-text"><AlertCircle size={13} />{errors.password}</p>}
+            <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           </div>
+          {errors.password && <p className="error-text"><AlertCircle size={13} />{errors.password}</p>}
+        </div>
 
-          <div className="mb-5 flex items-center justify-between text-sm">
-            <label className="flex items-center gap-2 text-ink-soft">
-              <input type="checkbox" checked={form.remember} onChange={set('remember')} className="h-4 w-4 rounded border-ink/30 accent-brand-500" />
-              Keep me signed in
-            </label>
-            <button type="button" className="font-medium text-sea-600 hover:underline">Forgot password</button>
-          </div>
+        <button type="submit" className="btn-primary w-full shadow-md" disabled={loading}>
+          {loading && <Loader2 size={16} className="animate-spin" />}
+          {loading ? (isSignUp ? 'Creating Account...' : 'Signing in...') : (isSignUp ? 'Create Account' : 'Sign in')}
+        </button>
 
-          <button type="submit" className="btn-primary w-full" disabled={loading}>
-            {loading && <Loader2 size={16} className="animate-spin" />}
-            {loading ? 'Signing in' : 'Sign in'}
-          </button>
-
-          <p className="mt-4 text-center text-sm text-ink-mute">
-            No account yet?{' '}
-            <button type="button" onClick={() => { close(); onSwitchToApply() }} className="font-medium text-sea-600 hover:underline">
-              Start an application
-            </button>
-          </p>
-        </form>
-      )}
+        <div className="mt-5 text-center text-xs text-ink-mute">
+          {isSignUp ? (
+            <>
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(false); setGeneralError(''); }}
+                className="font-semibold text-brand-600 hover:underline"
+              >
+                Sign In
+              </button>
+            </>
+          ) : (
+            <>
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={() => { setIsSignUp(true); setGeneralError(''); }}
+                className="font-semibold text-brand-600 hover:underline"
+              >
+                Create Account
+              </button>
+            </>
+          )}
+        </div>
+      </form>
     </Modal>
   )
 }

@@ -20,7 +20,40 @@ export default {
         sea: { 400: '#38BDF8', 500: '#0EA5E9', 600: '#0284C7', 900: '#0C2438' },
         ok: '#10B981',
         warn: '#EF4444',
-        canvas: '#F9FAFB'
+        canvas: '#F9FAFB',
+        border: 'hsl(var(--border, 214.3 31.8% 91.4%))',
+        input: 'hsl(var(--input, 214.3 31.8% 91.4%))',
+        ring: 'hsl(var(--ring, 24.6 95% 53.1%))',
+        background: 'hsl(var(--background, 0 0% 100%))',
+        foreground: 'hsl(var(--foreground, 222.2 84% 4.9%))',
+        primary: {
+          DEFAULT: 'hsl(var(--primary, 24.6 95% 53.1%))',
+          foreground: 'hsl(var(--primary-foreground, 60 9.1% 97.8%))',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary, 210 40% 96.1%))',
+          foreground: 'hsl(var(--secondary-foreground, 222.2 47.4% 11.2%))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive, 0 84.2% 60.2%))',
+          foreground: 'hsl(var(--destructive-foreground, 210 40% 98%))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted, 210 40% 96.1%))',
+          foreground: 'hsl(var(--muted-foreground, 215.4 16.3% 46.9%))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent, 210 40% 96.1%))',
+          foreground: 'hsl(var(--accent-foreground, 222.2 47.4% 11.2%))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover, 0 0% 100%))',
+          foreground: 'hsl(var(--popover-foreground, 222.2 84% 4.9%))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card, 0 0% 100%))',
+          foreground: 'hsl(var(--card-foreground, 222.2 84% 4.9%))',
+        }
       },
       fontFamily: {
         display: ['Poppins', 'Inter', 'system-ui', 'sans-serif'],

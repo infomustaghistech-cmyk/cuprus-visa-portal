@@ -6,60 +6,77 @@ import Home from './pages/Home'
 import ApplyVisa from './pages/ApplyVisa'
 import CheckStatusPage from './pages/CheckStatusPage'
 import ContactPage from './pages/ContactPage'
+import AdminPanel from './pages/AdminPanel'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 
-const PAGES = { home: Home, apply: ApplyVisa, status: CheckStatusPage, contact: ContactPage }
+const PAGES = {
+  home: Home,
+  apply: ApplyVisa,
+  status: CheckStatusPage,
+  contact: ContactPage,
+  admin: AdminPanel
+}
 
-export default function App() {
-  const [page, setPage] = useState(() => {
-    const hash = window.location.hash.replace('#', '')
-    return PAGES[hash] ? hash : 'home'
-  })
+function resolvePageFromLocation() {
+  const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase()
+  const hash = window.location.hash.replace('#', '').toLowerCase()
+  
+  if (path === 'admin' || hash === 'admin') {
+    return 'admin'
+  }
+  if (PAGES[hash]) return hash
+  if (PAGES[path]) return path
+  return 'home'
+}
+
+function MainApp() {
+  const [page, setPage] = useState(resolvePageFromLocation)
   const [signInOpen, setSignInOpen] = useState(false)
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('cyprus_user')
-      return saved ? JSON.parse(saved) : null
-    } catch {
-      return null
-    }
-  })
+  const { user, signOut } = useAuth()
 
   const navigate = (id) => {
     if (!PAGES[id]) return
     setPage(id)
-    window.location.hash = id
+    if (id === 'admin') {
+      window.location.hash = 'admin'
+    } else {
+      window.location.hash = id
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleSignIn = (userData) => {
-    setUser(userData)
-    try {
-      localStorage.setItem('cyprus_user', JSON.stringify(userData))
-    } catch {}
-    setSignInOpen(false)
-  }
-
-  const handleSignOut = () => {
-    setUser(null)
-    try {
-      localStorage.removeItem('cyprus_user')
-    } catch {}
-  }
-
   useEffect(() => {
-    const onHash = () => {
-      const hash = window.location.hash.replace('#', '')
-      if (PAGES[hash]) setPage(hash)
+    const handleLocationChange = () => {
+      setPage(resolvePageFromLocation())
     }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+
+    window.addEventListener('hashchange', handleLocationChange)
+    window.addEventListener('popstate', handleLocationChange)
+
+    return () => {
+      window.removeEventListener('hashchange', handleLocationChange)
+      window.removeEventListener('popstate', handleLocationChange)
+    }
   }, [])
 
   const Page = PAGES[page]
 
+  // Standalone Admin Portal (completely isolated from public website)
+  if (page === 'admin') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-orange-500 selection:text-white">
+        <AdminPanel onNavigate={navigate} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
+      >
         Skip to content
       </a>
 
@@ -68,15 +85,15 @@ export default function App() {
         user={user}
         onNavigate={navigate}
         onSignIn={() => setSignInOpen(true)}
-        onSignOut={handleSignOut}
+        onSignOut={signOut}
       />
 
       <main id="main" className="flex-1">
         <Page
           onNavigate={navigate}
           user={user}
-          onSignIn={handleSignIn}
-          onSignOut={handleSignOut}
+          onSignIn={() => setSignInOpen(true)}
+          onSignOut={signOut}
         />
       </main>
 
@@ -85,9 +102,18 @@ export default function App() {
       <SignIn
         open={signInOpen}
         onClose={() => setSignInOpen(false)}
-        onSignIn={handleSignIn}
         onSwitchToApply={() => navigate('apply')}
       />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <MainApp />
+      </ToastProvider>
+    </AuthProvider>
   )
 }
