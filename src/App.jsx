@@ -5,6 +5,7 @@ import SignIn from './components/SignIn'
 import Home from './pages/Home'
 import ApplyVisa from './pages/ApplyVisa'
 import CheckStatusPage from './pages/CheckStatusPage'
+import VisaStatusResultPage from './pages/VisaStatusResultPage'
 import ContactPage from './pages/ContactPage'
 import AdminPanel from './pages/AdminPanel'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -14,19 +15,24 @@ const PAGES = {
   home: Home,
   apply: ApplyVisa,
   status: CheckStatusPage,
+  result: VisaStatusResultPage,
+  'visa-status-result': VisaStatusResultPage,
   contact: ContactPage,
   admin: AdminPanel
 }
 
 function resolvePageFromLocation() {
   const path = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase()
-  const hash = window.location.hash.replace('#', '').toLowerCase()
+  const hash = window.location.hash.replace('#', '').split('?')[0].toLowerCase()
   
   if (path === 'admin' || hash === 'admin') {
     return 'admin'
   }
   if (PAGES[hash]) return hash
   if (PAGES[path]) return path
+  if (path.includes('visa-status-result') || hash.includes('visa-status-result') || hash.includes('result')) {
+    return 'result'
+  }
   return 'home'
 }
 

@@ -2,94 +2,143 @@ import Logo from './Logo'
 
 export default function Footer({ onNavigate }) {
   return (
-    <footer className="border-t border-gray-200/80 bg-white text-gray-600">
-      <div className="container grid gap-10 py-12 md:py-16 md:grid-cols-2 lg:grid-cols-4">
-        {/* Col 1: Brand & Logo */}
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Logo size={34} />
-            <div className="leading-tight">
-              <span className="block font-display text-[15px] font-bold text-gray-900 tracking-tight">Cyprus Visa</span>
-              <span className="block text-[11px] font-medium text-gray-500">Application Portal</span>
+    <footer className="bg-[#f8fafc] border-t border-slate-200 text-slate-700 text-xs sm:text-sm mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-16">
+        {/* Main Category Columns */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 sm:gap-12">
+          {/* Column 1 */}
+          <div>
+            <ul className="space-y-3 font-semibold text-slate-800 text-xs sm:text-[13px]">
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Agriculture, fisheries and livestock
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Business activity
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Education
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Employment and insurance
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Justice
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Military service
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 2 */}
+          <div>
+            <ul className="space-y-3 font-semibold text-slate-800 text-xs sm:text-[13px]">
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Citizens and day-to-day life
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Tourism
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Welfare
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Health
+                </a>
+              </li>
+              <li>
+                <a href="#main" onClick={(e) => { e.preventDefault(); onNavigate?.('home') }} className="hover:text-sky-800 hover:underline">
+                  Property and taxation
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3 */}
+          <div>
+            <ul className="space-y-3 font-semibold text-slate-800 text-xs sm:text-[13px]">
+              <li>
+                <button onClick={() => onNavigate?.('status')} className="hover:text-sky-800 hover:underline text-left">
+                  Services
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate?.('home')} className="hover:text-sky-800 hover:underline text-left">
+                  Websites
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate?.('home')} className="hover:text-sky-800 hover:underline text-left">
+                  News
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigate?.('contact')} className="hover:text-sky-800 hover:underline text-left">
+                  Government
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Policy Links and EU / Cyprus Logos Line */}
+        <div className="mt-14 pt-8 border-t border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] sm:text-xs font-medium text-slate-600">
+            <button onClick={() => onNavigate?.('contact')} className="hover:text-slate-900 hover:underline">Privacy Statement</button>
+            <button onClick={() => onNavigate?.('contact')} className="hover:text-slate-900 hover:underline">Cookies Policy</button>
+            <button onClick={() => onNavigate?.('contact')} className="hover:text-slate-900 hover:underline">Accessibility Statement</button>
+            <button onClick={() => onNavigate?.('contact')} className="hover:text-slate-900 hover:underline">Digital Assistant Usage Policy</button>
+            <button onClick={() => onNavigate?.('contact')} className="hover:text-slate-900 hover:underline">Contact</button>
+          </div>
+
+          {/* Co-funded by EU & Republic of Cyprus Official Badges */}
+          <div className="flex items-center gap-6 shrink-0">
+            {/* EU Flag & text */}
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-5 bg-[#003399] rounded-xs flex items-center justify-center relative overflow-hidden">
+                <div className="text-[7px] text-yellow-300 font-serif leading-none tracking-tighter">★★★★</div>
+              </div>
+              <div className="text-[9px] leading-tight text-slate-500">
+                <span className="block font-medium text-slate-700">Co-funded by</span>
+                <span>the European Union</span>
+              </div>
+            </div>
+
+            {/* Cyprus Emblem & text */}
+            <div className="flex items-center gap-1.5">
+              <Logo size={20} />
+              <span className="text-[10px] font-semibold text-slate-700">Republic of Cyprus</span>
             </div>
           </div>
-          <p className="mt-4 max-w-xs text-xs sm:text-sm text-gray-500 leading-relaxed">
-            Official portal for Cyprus visa applications and status tracking.
-          </p>
         </div>
 
-        {/* Col 2: Quick Links */}
-        <div>
-          <h3 className="font-display text-sm font-bold text-gray-900">Quick Links</h3>
-          <ul className="mt-4 space-y-2.5 text-xs sm:text-sm text-gray-500">
-            <li>
-              <button onClick={() => onNavigate('home')} className="hover:text-gray-900 transition-colors">Home</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('apply')} className="hover:text-gray-900 transition-colors">Apply Visa</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('status')} className="hover:text-gray-900 transition-colors">Check Status</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('contact')} className="hover:text-gray-900 transition-colors">Contact</button>
-            </li>
-          </ul>
-        </div>
-
-        {/* Col 3: Visa Types */}
-        <div>
-          <h3 className="font-display text-sm font-bold text-gray-900">Visa Types</h3>
-          <ul className="mt-4 space-y-2.5 text-xs sm:text-sm text-gray-500">
-            <li>
-              <button onClick={() => onNavigate('apply')} className="hover:text-gray-900 transition-colors">Tourist Visa</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('apply')} className="hover:text-gray-900 transition-colors">Business Visa</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('apply')} className="hover:text-gray-900 transition-colors">Work Visa</button>
-            </li>
-            <li>
-              <button onClick={() => onNavigate('apply')} className="hover:text-gray-900 transition-colors">Student Visa</button>
-            </li>
-          </ul>
-        </div>
-
-        {/* Col 4: Contact */}
-        <div>
-          <h3 className="font-display text-sm font-bold text-gray-900">Contact</h3>
-          <ul className="mt-4 space-y-2.5 text-xs sm:text-sm text-gray-500">
-            <li>
-              <a href="mailto:info@md.mip.gov.cy" className="hover:text-gray-900 transition-colors">
-                info@md.mip.gov.cy
-              </a>
-            </li>
-            <li>
-              <a href="tel:+35722308808" className="hover:text-gray-900 transition-colors">
-                +357 22308808
-              </a>
-            </li>
-            <li className="text-gray-500">
-              Ministry of Interior, Nicosia
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div className="border-t border-gray-100">
-        <div className="container flex flex-col gap-4 py-6 text-xs text-gray-400 sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 Cyprus Visa Application Portal. All Rights Reserved.</p>
-          <div className="flex items-center gap-3 text-gray-400">
-            <button className="hover:text-gray-700 transition-colors">Privacy Policy</button>
-            <span className="text-gray-200">|</span>
-            <button className="hover:text-gray-700 transition-colors">Terms & Conditions</button>
-            <span className="text-gray-200">|</span>
-            <button onClick={() => onNavigate('contact')} className="hover:text-gray-700 transition-colors">Contact Support</button>
-          </div>
+        {/* Bottom Gov.cy Copyright Bar */}
+        <div className="mt-8 pt-6 border-t border-slate-200/60 flex items-center gap-4 text-xs text-slate-500">
+          <span className="font-bold text-slate-800 tracking-tight">gov.cy</span>
+          <span>© Republic of Cyprus, {new Date().getFullYear()}</span>
         </div>
       </div>
     </footer>
   )
 }
+
+
