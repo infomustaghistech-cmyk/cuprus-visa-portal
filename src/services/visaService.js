@@ -78,7 +78,7 @@ export async function uploadDocumentToStorage(file, referenceNumber, docKey) {
 }
 
 /**
- * Get all visa applications (merged from Supabase & Local Cache)
+ * Get all visa applications (Supabase is source of truth, Local storage as offline backup)
  */
 export async function getAllApplications() {
   const localList = getLocalApplications()
@@ -91,37 +91,23 @@ export async function getAllApplications() {
       .select('*')
       .order('created_at', { ascending: false })
 
-    if (!error && Array.isArray(data) && data.length > 0) {
+    if (!error && Array.isArray(data)) {
       supabaseApps = data
       hasSupabase = true
+      // Sync local cache to exactly match Supabase
+      saveLocalApplications(supabaseApps)
+      return {
+        applications: supabaseApps,
+        source: 'supabase'
+      }
     }
   } catch (e) {
     console.warn('Supabase fetch note:', e)
   }
 
-  // Merge list avoiding duplicates (keyed by reference_number or passport)
-  const map = new Map()
-
-  // First put localList
-  localList.forEach((app) => {
-    const key = app.reference_number || app.id || app.passport
-    if (key) map.set(key, app)
-  })
-
-  // Then overlay supabaseApps
-  supabaseApps.forEach((app) => {
-    const key = app.reference_number || app.id || app.passport
-    if (key) {
-      const existing = map.get(key)
-      map.set(key, { ...existing, ...app })
-    }
-  })
-
-  const merged = Array.from(map.values())
-  saveLocalApplications(merged)
-
+  // Fallback to local cache if Supabase network is down
   return {
-    applications: merged,
+    applications: localList,
     source: hasSupabase ? 'supabase' : 'local'
   }
 }
@@ -263,8 +249,8 @@ export async function submitVisaApplication(data, rawFiles = {}) {
     purpose: data.purpose || '',
     documents: docsData,
     submitted_date: submittedFormatted,
-    decision_date: 'Pending',
-    issue_date: 'Pending',
+    decision_date: '',
+    issue_date: '',
     expiry_date: '',
     status: 'Pending',
     admin_notes: 'Application received and queued for official review.',
@@ -288,9 +274,12 @@ export async function submitVisaApplication(data, rawFiles = {}) {
   } catch (e) {}
 
   try {
+    // Exclude client-side string 'id' so Supabase auto-generates genuine UUID
+    const { id: _tempId, ...supabaseRecord } = applicationRecord
+
     const { data: inserted, error } = await supabase
       .from('visa_applications')
-      .insert([applicationRecord])
+      .insert([supabaseRecord])
       .select()
       .single()
 
@@ -299,7 +288,24 @@ export async function submitVisaApplication(data, rawFiles = {}) {
       return { success: true, data: applicationRecord, fromSupabase: false, note: error.message }
     }
 
-    return { success: true, data: inserted, fromSupabase: true }
+    // If Supabase assigned a real UUID, sync it to local cache
+    if (inserted && inserted.id) {
+      const merged = { ...applicationRecord, id: inserted.id }
+      const syncedList = localList.map((a) => (a.reference_number === applicationRecord.reference_number ? merged : a))
+      saveLocalApplications(syncedList)
+      if (passportClean) {
+        try {
+          localStorage.setItem(`cyprus_visa_app_${passportClean}`, JSON.stringify(merged))
+        } catch (e) {}
+      }
+      try {
+        localStorage.setItem(`cyprus_visa_app_${referenceNumber.toUpperCase()}`, JSON.stringify(merged))
+        sessionStorage.setItem('current_visa_result', JSON.stringify(merged))
+      } catch (e) {}
+      return { success: true, data: merged, fromSupabase: true }
+    }
+
+    return { success: true, data: inserted || applicationRecord, fromSupabase: true }
   } catch (err) {
     console.warn('Network / Supabase error on submit:', err)
     return { success: true, data: applicationRecord, fromSupabase: false, error: err.message }
@@ -368,9 +374,34 @@ export async function updateFullApplication(idOrRef, fields = {}) {
       passport: targetApp.passport,
       dob: targetApp.dob,
       nationality: targetApp.nationality,
+      place_of_birth: targetApp.place_of_birth || '',
+      passport_expiry: targetApp.passport_expiry || '',
+      gender: targetApp.gender || 'male',
+      marital_status: targetApp.marital_status || '',
+      address: targetApp.address || '',
+      city: targetApp.city || '',
+      postal_code: targetApp.postal_code || '',
+      country_of_residence: targetApp.country_of_residence || '',
+      emergency_name: targetApp.emergency_name || '',
+      emergency_phone: targetApp.emergency_phone || '',
       visa_type: targetApp.visa_type,
+      visa_number: targetApp.visa_number || '',
+      entries: targetApp.entries || 'Single',
+      duration: targetApp.duration || '90 days',
+      port_of_entry: targetApp.port_of_entry || 'Larnaca International Airport',
+      arrival: targetApp.arrival || '',
+      return_date: targetApp.return_date || '',
+      destination_address: targetApp.destination_address || '',
+      host_name: targetApp.host_name || '',
+      host_phone: targetApp.host_phone || '',
+      nights: targetApp.nights || '7',
+      purpose: targetApp.purpose || '',
+      submitted_date: targetApp.submitted_date || '',
+      decision_date: targetApp.decision_date || '',
+      issue_date: targetApp.issue_date || '',
+      expiry_date: targetApp.expiry_date || '',
       status: targetApp.status,
-      admin_notes: targetApp.admin_notes,
+      admin_notes: targetApp.admin_notes || '',
       updated_at: new Date().toISOString()
     }
 
@@ -414,7 +445,28 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
     )
   }
 
-  // 1. Check direct local key cache
+  // 1. Try matching in Supabase first (Live Database)
+  try {
+    let query = supabase.from('visa_applications').select('*')
+    if (queryTerm.startsWith('CY-') || queryTerm.startsWith('B21-')) {
+      query = query.ilike('reference_number', queryTerm)
+    } else {
+      query = query.or(`passport.ilike.${queryTerm},reference_number.ilike.${queryTerm},visa_number.ilike.${queryTerm}`)
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (!error && data && matchesDob(data)) {
+      // Sync to direct cache
+      try {
+        localStorage.setItem(`cyprus_visa_app_${queryTerm}`, JSON.stringify(data))
+      } catch (e) {}
+      return { found: true, application: data, source: 'supabase' }
+    }
+  } catch (err) {
+    console.warn('Supabase lookup error:', err)
+  }
+
+  // 2. Fallback to direct local key cache (Offline)
   try {
     const cached = localStorage.getItem(`cyprus_visa_app_${queryTerm}`)
     if (cached) {
@@ -425,7 +477,7 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
     }
   } catch (e) {}
 
-  // 2. Check local storage mirror
+  // 3. Fallback to local storage mirror (Offline)
   const localList = getLocalApplications()
   const localMatch = localList.find((app) => {
     const passMatch = app.passport && app.passport.toUpperCase() === queryTerm
@@ -436,35 +488,6 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
 
   if (localMatch) {
     return { found: true, application: localMatch, source: 'local' }
-  }
-
-  // Also check without DOB restriction if exact reference/passport matched
-  const looseLocalMatch = localList.find((app) => {
-    const passMatch = app.passport && app.passport.toUpperCase() === queryTerm
-    const refMatch = app.reference_number && app.reference_number.toUpperCase() === queryTerm
-    const visaMatch = app.visa_number && app.visa_number.toUpperCase() === queryTerm
-    return passMatch || refMatch || visaMatch
-  })
-
-  if (looseLocalMatch) {
-    return { found: true, application: looseLocalMatch, source: 'local' }
-  }
-
-  // 3. Try matching in Supabase
-  try {
-    let query = supabase.from('visa_applications').select('*')
-    if (queryTerm.startsWith('CY-') || queryTerm.startsWith('B21-')) {
-      query = query.ilike('reference_number', queryTerm)
-    } else {
-      query = query.ilike('passport', queryTerm)
-    }
-
-    const { data, error } = await query.maybeSingle()
-    if (!error && data) {
-      return { found: true, application: data, source: 'supabase' }
-    }
-  } catch (err) {
-    console.warn('Supabase lookup error:', err)
   }
 
   return { found: false }

@@ -408,7 +408,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   DECISION DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.decision_date && data.decision_date !== 'Pending' ? formatDisplayDate(data.decision_date) : (isApproved ? formatDisplayDate(new Date()) : 'Under Review')}
+                  {data.decision_date && data.decision_date.toLowerCase() !== 'pending' ? formatDisplayDate(data.decision_date) : '—'}
                 </span>
               </div>
 
@@ -418,7 +418,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA ISSUE DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.issue_date && data.issue_date !== 'Pending' ? formatDisplayDate(data.issue_date) : (isApproved ? formatDisplayDate(new Date()) : 'Pending')}
+                  {data.issue_date && data.issue_date.toLowerCase() !== 'pending' ? formatDisplayDate(data.issue_date) : '—'}
                 </span>
               </div>
 
@@ -428,7 +428,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA EXPIRY DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.expiry_date ? formatDisplayDate(data.expiry_date) : (isApproved ? formatDisplayDate(new Date(Date.now() + 365 * 86400000)) : '—')}
+                  {data.expiry_date && data.expiry_date.toLowerCase() !== 'pending' ? formatDisplayDate(data.expiry_date) : '—'}
                 </span>
               </div>
             </div>

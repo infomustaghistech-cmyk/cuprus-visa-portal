@@ -130,11 +130,11 @@ export default function AdminPanel({ onNavigate }) {
       duration: app.duration || '90 days',
       port_of_entry: app.port_of_entry || 'Larnaca International Airport',
       submitted_date: app.submitted_date || (app.created_at ? formatDisplayDate(app.created_at) : formatDisplayDate(new Date())),
-      decision_date: app.decision_date || (app.status === 'Approved' ? formatDisplayDate(new Date()) : 'Pending'),
-      issue_date: app.issue_date || (app.status === 'Approved' ? formatDisplayDate(new Date()) : 'Pending'),
-      expiry_date: app.expiry_date || (app.status === 'Approved' ? formatDisplayDate(new Date(Date.now() + 365 * 86400000)) : ''),
+      decision_date: app.decision_date || '',
+      issue_date: app.issue_date || '',
+      expiry_date: app.expiry_date || '',
       status: app.status || 'Pending',
-      admin_notes: app.admin_notes || (app.status === 'Approved' ? 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.' : 'Application received and queued for review.'),
+      admin_notes: app.admin_notes || '',
       decision_pdf: app.decision_pdf || null
     })
     setSaveSuccess(false)
@@ -157,8 +157,8 @@ export default function AdminPanel({ onNavigate }) {
       duration: '90 days',
       port_of_entry: 'Larnaca International Airport',
       submitted_date: todayFormatted,
-      decision_date: 'Pending',
-      issue_date: 'Pending',
+      decision_date: '',
+      issue_date: '',
       expiry_date: '',
       status: 'Pending',
       admin_notes: 'Application received and queued for official review.',

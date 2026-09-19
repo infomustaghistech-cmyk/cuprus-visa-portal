@@ -3,18 +3,38 @@ import { X } from 'lucide-react'
 
 export default function Modal({ open, title, subtitle, onClose, children }) {
   const panel = useRef(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const prevOpenRef = useRef(false)
 
   useEffect(() => {
-    if (!open) return
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    if (!open) {
+      prevOpenRef.current = false
+      return
+    }
+
+    const onKey = (e) => {
+      if (e.key === 'Escape') onCloseRef.current?.()
+    }
     document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
-    panel.current?.querySelector('input, button')?.focus()
+
+    // Only set initial focus when modal transitions from closed to open
+    if (!prevOpenRef.current) {
+      prevOpenRef.current = true
+      // Small timeout to allow DOM to render
+      setTimeout(() => {
+        if (panel.current && !panel.current.contains(document.activeElement)) {
+          panel.current.querySelector('input, button')?.focus()
+        }
+      }, 50)
+    }
+
     return () => {
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = ''
     }
-  }, [open, onClose])
+  }, [open])
 
   if (!open) return null
 
