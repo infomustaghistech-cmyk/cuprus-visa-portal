@@ -12,7 +12,7 @@ import {
   AlertCircle,
   FileCheck
 } from 'lucide-react'
-import { checkVisaStatus } from '../services/visaService'
+import { checkVisaStatus, formatDisplayDate } from '../services/visaService'
 
 function CyprusWatermark() {
   return (
@@ -60,6 +60,7 @@ function CyprusWatermark() {
 export default function VisaStatusResultPage({ onNavigate }) {
   const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [notFound, setNotFound] = useState(false)
   const [pdfModalOpen, setPdfModalOpen] = useState(false)
 
   const loadData = async () => {
@@ -81,34 +82,33 @@ export default function VisaStatusResultPage({ onNavigate }) {
       } catch (e) {}
     }
 
-    const queryKey = passportParam || refParam || 'PA3726025'
+    const queryKey = passportParam || refParam || ''
+    if (!queryKey) {
+      // If nothing was passed, check default session
+      try {
+        const stored = sessionStorage.getItem('current_visa_result')
+        if (stored) {
+          const parsed = JSON.parse(stored)
+          setApplication(parsed)
+          setLoading(false)
+          return
+        }
+      } catch (e) {}
+      setNotFound(true)
+      setLoading(false)
+      return
+    }
+
     const res = await checkVisaStatus(queryKey, dobParam, refParam)
 
     if (res.found && res.application) {
       setApplication(res.application)
+      setNotFound(false)
       try {
         sessionStorage.setItem('current_visa_result', JSON.stringify(res.application))
       } catch (e) {}
     } else {
-      setApplication({
-        full_name: 'DHANANJAYA RAI',
-        passport: queryKey,
-        dob: '25 Aug 2001',
-        nationality: 'NEPAL',
-        reference_number: '7209572',
-        visa_number: 'E26-187209',
-        visa_type: 'Work Permit',
-        entries: 'Multiple',
-        duration: '365 days',
-        port_of_entry: 'Larnaca International Airport',
-        submitted_date: '12 Sept 2026',
-        decision_date: '15 Sept 2026',
-        issue_date: '15 Sept 2026',
-        expiry_date: '14 Sept 2027',
-        status: 'Approved',
-        admin_notes: 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.',
-        decision_pdf: null
-      })
+      setNotFound(true)
     }
     setLoading(false)
   }
@@ -122,11 +122,12 @@ export default function VisaStatusResultPage({ onNavigate }) {
   }
 
   const handleDownload = () => {
+    if (!data) return
     const pdfData = data.decision_pdf
     const pdfUrl = typeof pdfData === 'string' ? pdfData : pdfData?.url
     const pdfName = (typeof pdfData === 'object' && pdfData?.name)
       ? pdfData.name
-      : `Official_Cyprus_Visa_${data.passport || 'PA3726025'}.pdf`
+      : `Official_Cyprus_Visa_${data.passport || data.reference_number || 'Document'}.pdf`
 
     if (pdfUrl) {
       const link = document.createElement('a')
@@ -152,24 +153,39 @@ export default function VisaStatusResultPage({ onNavigate }) {
     )
   }
 
-  const data = application || {
-    full_name: 'DHANANJAYA RAI',
-    passport: 'PA3726025',
-    dob: '25 Aug 2001',
-    nationality: 'NEPAL',
-    reference_number: '7209572',
-    visa_number: 'E26-187209',
-    visa_type: 'Work Permit',
-    entries: 'Multiple',
-    duration: '365 days',
-    port_of_entry: 'Larnaca International Airport',
-    submitted_date: '12 Sept 2026',
-    decision_date: '15 Sept 2026',
-    issue_date: '15 Sept 2026',
-    expiry_date: '14 Sept 2027',
-    status: 'Approved',
-    decision_pdf: null
+  if (notFound || !application) {
+    return (
+      <div className="bg-[#f8fafc] min-h-[70vh] flex items-center justify-center py-12 px-4 font-sans text-slate-800">
+        <div className="max-w-md w-full bg-white rounded-2xl border border-slate-200 shadow-lg p-8 text-center space-y-5">
+          <div className="mx-auto w-14 h-14 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600">
+            <AlertCircle size={28} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">No Application Found</h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-600 leading-relaxed">
+              We could not find an application matching your details. Please verify your passport number or reference number and date of birth.
+            </p>
+          </div>
+          <div className="pt-2 flex flex-col gap-2">
+            <button
+              onClick={() => onNavigate('status')}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#183048] hover:bg-[#122438] text-white text-xs sm:text-sm font-bold transition-colors shadow-xs cursor-pointer"
+            >
+              Back to Check Status
+            </button>
+            <button
+              onClick={() => onNavigate('home')}
+              className="w-full py-2 px-4 rounded-xl text-slate-600 hover:text-slate-900 text-xs font-semibold cursor-pointer"
+            >
+              Return to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
+
+  const data = application
 
   const isApproved = (data.status || 'Approved').toLowerCase() === 'approved'
   const hasPdf = Boolean(data.decision_pdf && (typeof data.decision_pdf === 'string' || data.decision_pdf?.url))
@@ -218,10 +234,22 @@ export default function VisaStatusResultPage({ onNavigate }) {
                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                   isApproved
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : (data.status || '').toLowerCase() === 'rejected'
+                    ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                    : (data.status || '').toLowerCase() === 'under review'
+                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
                     : 'bg-amber-50 text-amber-700 border border-amber-200'
                 }`}>
-                  <CheckCircle2 size={13} className={isApproved ? "text-emerald-600" : "text-amber-600"} />
-                  {data.status || 'Approved'}
+                  <CheckCircle2 size={13} className={
+                    isApproved
+                      ? "text-emerald-600"
+                      : (data.status || '').toLowerCase() === 'rejected'
+                      ? "text-rose-600"
+                      : (data.status || '').toLowerCase() === 'under review'
+                      ? "text-sky-600"
+                      : "text-amber-600"
+                  } />
+                  {data.status || 'Pending'}
                 </span>
               </div>
 
@@ -236,7 +264,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   }`}
                 >
                   <Download size={14} className={hasPdf ? "text-white" : "text-slate-600"} />
-                  <span>Download PDF {hasPdf ? '' : ''}</span>
+                  <span>Download PDF</span>
                 </button>
 
                 <button
@@ -257,7 +285,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   FULL NAME
                 </span>
                 <span className="font-bold text-slate-900 text-sm sm:text-base uppercase tracking-wide">
-                  {data.full_name || 'DHANANJAYA RAI'}
+                  {data.full_name || '—'}
                 </span>
               </div>
 
@@ -267,7 +295,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   PASSPORT NUMBER
                 </span>
                 <span className="font-bold font-mono text-slate-900 text-sm">
-                  {data.passport || 'PA3726025'}
+                  {data.passport || '—'}
                 </span>
               </div>
 
@@ -277,7 +305,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   DATE OF BIRTH
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.dob || '25 Aug 2001'}
+                  {data.dob ? formatDisplayDate(data.dob) : '—'}
                 </span>
               </div>
 
@@ -287,7 +315,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   NATIONALITY
                 </span>
                 <span className="font-bold text-slate-900 uppercase">
-                  {data.nationality || 'NEPAL'}
+                  {data.nationality || '—'}
                 </span>
               </div>
 
@@ -297,7 +325,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   APPLICATION REFERENCE
                 </span>
                 <span className="font-bold font-mono text-slate-900">
-                  {data.reference_number || '7209572'}
+                  {data.reference_number || '—'}
                 </span>
               </div>
 
@@ -307,7 +335,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA NUMBER
                 </span>
                 <span className="font-bold font-mono text-slate-900">
-                  {data.visa_number || 'E26-187209'}
+                  {data.visa_number || (data.status === 'Approved' ? `E26-${data.reference_number}` : 'Pending')}
                 </span>
               </div>
             </div>
@@ -330,7 +358,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA TYPE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.visa_type || 'Work Permit'}
+                  {data.visa_type || 'Tourist Visa'}
                 </span>
               </div>
 
@@ -340,7 +368,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   NUMBER OF ENTRIES
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.entries || 'Multiple'}
+                  {data.entries || 'Single'}
                 </span>
               </div>
 
@@ -350,7 +378,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   DURATION OF STAY
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.duration || '365 days'}
+                  {data.duration || (data.nights ? `${data.nights} days` : '90 days')}
                 </span>
               </div>
 
@@ -370,7 +398,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   APPLICATION SUBMITTED
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.submitted_date || '12 Sept 2026'}
+                  {data.submitted_date ? formatDisplayDate(data.submitted_date) : (data.created_at ? formatDisplayDate(data.created_at) : '—')}
                 </span>
               </div>
 
@@ -380,7 +408,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   DECISION DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.decision_date || '15 Sept 2026'}
+                  {data.decision_date && data.decision_date !== 'Pending' ? formatDisplayDate(data.decision_date) : (isApproved ? formatDisplayDate(new Date()) : 'Under Review')}
                 </span>
               </div>
 
@@ -390,7 +418,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA ISSUE DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.issue_date || '15 Sept 2026'}
+                  {data.issue_date && data.issue_date !== 'Pending' ? formatDisplayDate(data.issue_date) : (isApproved ? formatDisplayDate(new Date()) : 'Pending')}
                 </span>
               </div>
 
@@ -400,7 +428,7 @@ export default function VisaStatusResultPage({ onNavigate }) {
                   VISA EXPIRY DATE
                 </span>
                 <span className="font-bold text-slate-900">
-                  {data.expiry_date || '14 Sept 2027'}
+                  {data.expiry_date ? formatDisplayDate(data.expiry_date) : (isApproved ? formatDisplayDate(new Date(Date.now() + 365 * 86400000)) : '—')}
                 </span>
               </div>
             </div>

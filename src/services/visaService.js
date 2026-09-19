@@ -1,135 +1,7 @@
 import { supabase } from '../lib/supabase'
 
+// Storage key for local mirror
 const LOCAL_STORAGE_KEY = 'cyprus_visa_applications_mirror'
-
-// Seed initial records for testing and demo
-const INITIAL_DEMO_RECORDS = [
-  {
-    id: 'demo-1',
-    reference_number: '7209572',
-    visa_number: 'E26-187209',
-    full_name: 'DHANANJAYA RAI',
-    email: 'dhananjaya.rai@example.com',
-    passport: 'PA3726025',
-    dob: '25 Aug 2001',
-    nationality: 'NEPAL',
-    visa_type: 'Work Permit',
-    entries: 'Multiple',
-    duration: '365 days',
-    port_of_entry: 'Larnaca International Airport',
-    submitted_date: '12 Sept 2026',
-    decision_date: '15 Sept 2026',
-    issue_date: '15 Sept 2026',
-    expiry_date: '14 Sept 2027',
-    status: 'Approved',
-    arrival: '2026-09-18',
-    return_date: '2028-09-18',
-    admin_notes: 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.',
-    decision_pdf: null,
-    created_at: new Date(Date.now() - 3 * 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'demo-2',
-    reference_number: 'B21-22718',
-    visa_number: 'E26-227180',
-    full_name: 'Subash Surakheti Sarki',
-    email: 'subashsarki213@gmail.com',
-    passport: 'PA3179823',
-    dob: '14 May 1998',
-    nationality: 'Nepali',
-    visa_type: 'Work Visa',
-    entries: 'Multiple',
-    duration: '365 days',
-    port_of_entry: 'Larnaca International Airport',
-    submitted_date: '10 Sept 2026',
-    decision_date: '18 Sept 2026',
-    issue_date: '18 Sept 2026',
-    expiry_date: '17 Sept 2027',
-    status: 'Approved',
-    arrival: '2026-09-18',
-    return_date: '2028-09-18',
-    admin_notes: 'Application approved. Work permit authorization granted.',
-    decision_pdf: null,
-    created_at: new Date(Date.now() - 2 * 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'demo-3',
-    reference_number: 'B21-45473',
-    visa_number: 'E26-454731',
-    full_name: 'muhammad.64078',
-    email: 'muhammad.64078@iqra.edu.pk',
-    passport: 'A-123',
-    dob: '02 Feb 1995',
-    nationality: 'sdhfd',
-    visa_type: 'Tourist Visa',
-    entries: 'Single',
-    duration: '90 days',
-    port_of_entry: 'Paphos International Airport',
-    submitted_date: '02 Sept 2026',
-    decision_date: '18 Sept 2026',
-    issue_date: '18 Sept 2026',
-    expiry_date: '18 Dec 2026',
-    status: 'Approved',
-    arrival: '2026-09-02',
-    return_date: '2026-09-09',
-    admin_notes: 'Tourist visa granted for 90 days.',
-    decision_pdf: null,
-    created_at: new Date(Date.now() - 1 * 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'demo-4',
-    reference_number: 'B21-34655',
-    visa_number: 'E26-346552',
-    full_name: 'info.mustaghistech',
-    email: 'info.mustaghistech@gmail.com',
-    passport: '12345689',
-    dob: '19 Oct 1992',
-    nationality: 'III',
-    visa_type: 'Tourist Visa',
-    entries: 'Single',
-    duration: '30 days',
-    port_of_entry: 'Larnaca International Airport',
-    submitted_date: '03 Sept 2026',
-    decision_date: '18 Sept 2026',
-    issue_date: '18 Sept 2026',
-    expiry_date: '18 Oct 2026',
-    status: 'Approved',
-    arrival: '2026-09-03',
-    return_date: '2026-09-07',
-    admin_notes: 'Application approved.',
-    decision_pdf: null,
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'demo-5',
-    reference_number: 'CY-51687',
-    visa_number: 'E26-516873',
-    full_name: 'ingfo',
-    email: 'info.mustaghistech@gmail.com',
-    passport: 'A123',
-    dob: '08 Aug 1990',
-    nationality: 'vgg',
-    visa_type: 'Business Visa',
-    entries: 'Multiple',
-    duration: '180 days',
-    port_of_entry: 'Larnaca International Airport',
-    submitted_date: '08 Sept 2026',
-    decision_date: '18 Sept 2026',
-    issue_date: '18 Sept 2026',
-    expiry_date: '18 Mar 2027',
-    status: 'Approved',
-    arrival: '2026-09-08',
-    nights: '7 nights',
-    admin_notes: 'Business visa approved.',
-    decision_pdf: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }
-]
 
 // Helper for local mirror storage
 export const getLocalApplications = () => {
@@ -137,15 +9,26 @@ export const getLocalApplications = () => {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed
+      if (Array.isArray(parsed)) {
+        // Filter out any legacy dummy demo records if present
+        const cleaned = parsed.filter(
+          (app) =>
+            app &&
+            app.id &&
+            !String(app.id).startsWith('demo-') &&
+            app.reference_number !== '7209572' &&
+            app.passport !== 'PA3726025' &&
+            app.full_name !== 'DHANANJAYA RAI'
+        )
+        if (cleaned.length !== parsed.length) {
+          saveLocalApplications(cleaned)
+        }
+        return cleaned
       }
     }
   } catch (e) {}
 
-  // Save and return initial demo records if storage was empty
-  saveLocalApplications(INITIAL_DEMO_RECORDS)
-  return INITIAL_DEMO_RECORDS
+  return []
 }
 
 export const saveLocalApplications = (apps) => {
@@ -243,11 +126,59 @@ export async function getAllApplications() {
   }
 }
 
+// Helper for readable date formatting (e.g. "19 Sept 2026" or "25 Aug 2001")
+export function formatDisplayDate(dateVal) {
+  if (!dateVal) return ''
+  try {
+    const trimmed = String(dateVal).trim()
+    // If it's already in "DD Mon YYYY" or "DD Month YYYY" format, return it
+    if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(trimmed)) {
+      return trimmed
+    }
+    // Try parsing dd/mm/yyyy or dd-mm-yyyy
+    const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+    if (ddmmyyyy) {
+      const day = parseInt(ddmmyyyy[1], 10)
+      const month = parseInt(ddmmyyyy[2], 10) - 1
+      const year = parseInt(ddmmyyyy[3], 10)
+      const parsed = new Date(year, month, day)
+      if (!isNaN(parsed.getTime())) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+        return `${String(parsed.getDate()).padStart(2, '0')} ${months[parsed.getMonth()]} ${parsed.getFullYear()}`
+      }
+    }
+    const d = new Date(dateVal)
+    if (!isNaN(d.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
+      return `${String(d.getDate()).padStart(2, '0')} ${months[d.getMonth()]} ${d.getFullYear()}`
+    }
+    return trimmed
+  } catch (e) {
+    return String(dateVal)
+  }
+}
+
+// Normalize dates for flexible matching across formats (YYYY-MM-DD vs DD/MM/YYYY vs DD Mon YYYY)
+export function normalizeDateForComparison(str) {
+  if (!str) return ''
+  const trimmed = String(str).trim().toLowerCase()
+  const ddmmyyyy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/)
+  if (ddmmyyyy) {
+    return `${ddmmyyyy[3]}-${String(ddmmyyyy[2]).padStart(2, '0')}-${String(ddmmyyyy[1]).padStart(2, '0')}`
+  }
+  const d = new Date(str)
+  if (!isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  return trimmed.replace(/[^a-z0-9]/g, '')
+}
+
 /**
  * Submit a new visa application to Supabase (with automatic local backup sync & document storage)
  */
 export async function submitVisaApplication(data, rawFiles = {}) {
   const referenceNumber = `B21-${Math.floor(10000 + Math.random() * 90000)}`
+  const visaNumber = `E26-${Math.floor(100000 + Math.random() * 900000)}`
   
   const docsData = {
     passport: data.passportFile || null,
@@ -279,43 +210,82 @@ export async function submitVisaApplication(data, rawFiles = {}) {
     )
   }
 
+  const now = new Date()
+  const submittedFormatted = formatDisplayDate(now)
+  const dobFormatted = data.dob ? formatDisplayDate(data.dob) : ''
+
+  const visaTypeMap = {
+    tourist: 'Tourist Visa',
+    business: 'Business Visa',
+    work: 'Work Permit',
+    student: 'Student Visa',
+    transit: 'Transit Visa'
+  }
+  const displayVisaType = visaTypeMap[data.visaType] || data.visaType || 'Tourist Visa'
+  const displayEntries = data.entries || (data.visaType === 'work' ? 'Multiple' : 'Single')
+  const displayDuration = data.duration || (data.nights ? `${data.nights} days` : '90 days')
+  const displayPort = data.portOfEntry || 'Larnaca International Airport'
+
+  const passportClean = data.passport ? String(data.passport).trim().toUpperCase() : ''
+  const fullNameClean = (data.fullName || data.full_name || '').trim()
+
   const applicationRecord = {
+    id: `app-${Date.now()}`,
     reference_number: referenceNumber,
+    visa_number: visaNumber,
     user_id: data.user_id || null,
-    full_name: data.fullName,
-    email: data.email,
+    full_name: fullNameClean,
+    email: (data.email || '').trim(),
     phone: data.phone || '',
-    nationality: data.nationality || '',
-    place_of_birth: data.placeOfBirth || '',
-    passport: data.passport ? data.passport.toUpperCase() : '',
-    passport_expiry: data.passportExpiry || '',
-    dob: data.dob || '',
+    nationality: (data.nationality || '').trim(),
+    place_of_birth: data.placeOfBirth || data.place_of_birth || '',
+    passport: passportClean,
+    passport_expiry: data.passportExpiry || data.passport_expiry || '',
+    dob: dobFormatted || data.dob || '',
     gender: data.gender || 'male',
-    marital_status: data.maritalStatus || '',
+    marital_status: data.maritalStatus || data.marital_status || '',
     address: data.address || '',
     city: data.city || '',
-    postal_code: data.postalCode || '',
-    country_of_residence: data.countryOfResidence || '',
-    emergency_name: data.emergencyName || '',
-    emergency_phone: data.emergencyPhone || '',
-    visa_type: data.visaType || 'tourist',
+    postal_code: data.postalCode || data.postal_code || '',
+    country_of_residence: data.countryOfResidence || data.country_of_residence || '',
+    emergency_name: data.emergencyName || data.emergency_name || '',
+    emergency_phone: data.emergencyPhone || data.emergency_phone || '',
+    visa_type: displayVisaType,
+    entries: displayEntries,
+    duration: displayDuration,
+    port_of_entry: displayPort,
     arrival: data.arrival || '',
-    return_date: data.returnDate || '',
-    destination_address: data.destinationAddress || '',
-    host_name: data.hostName || '',
-    host_phone: data.hostPhone || '',
+    return_date: data.returnDate || data.return_date || '',
+    destination_address: data.destinationAddress || data.destination_address || '',
+    host_name: data.hostName || data.host_name || '',
+    host_phone: data.hostPhone || data.host_phone || '',
     nights: String(data.nights || '7'),
     purpose: data.purpose || '',
     documents: docsData,
+    submitted_date: submittedFormatted,
+    decision_date: 'Pending',
+    issue_date: 'Pending',
+    expiry_date: '',
     status: 'Pending',
-    admin_notes: 'Application received and queued for review.',
+    admin_notes: 'Application received and queued for official review.',
     decision_pdf: null,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    created_at: now.toISOString(),
+    updated_at: now.toISOString()
   }
 
   const localList = getLocalApplications()
   saveLocalApplications([applicationRecord, ...localList])
+
+  // Direct fast lookup cache
+  if (passportClean) {
+    try {
+      localStorage.setItem(`cyprus_visa_app_${passportClean}`, JSON.stringify(applicationRecord))
+    } catch (e) {}
+  }
+  try {
+    localStorage.setItem(`cyprus_visa_app_${referenceNumber.toUpperCase()}`, JSON.stringify(applicationRecord))
+    sessionStorage.setItem('current_visa_result', JSON.stringify(applicationRecord))
+  } catch (e) {}
 
   try {
     const { data: inserted, error } = await supabase
@@ -432,12 +402,26 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
 
   if (!queryTerm) return { found: false }
 
+  const normalizedInputDob = dobClean ? normalizeDateForComparison(dobClean) : ''
+
+  const matchesDob = (app) => {
+    if (!normalizedInputDob || !app.dob) return true
+    const normalizedAppDob = normalizeDateForComparison(app.dob)
+    return (
+      normalizedAppDob === normalizedInputDob ||
+      app.dob.toLowerCase().includes(dobClean.toLowerCase()) ||
+      dobClean.toLowerCase().includes(app.dob.toLowerCase())
+    )
+  }
+
   // 1. Check direct local key cache
   try {
     const cached = localStorage.getItem(`cyprus_visa_app_${queryTerm}`)
     if (cached) {
       const parsed = JSON.parse(cached)
-      if (parsed) return { found: true, application: parsed, source: 'local-cache' }
+      if (parsed && matchesDob(parsed)) {
+        return { found: true, application: parsed, source: 'local-cache' }
+      }
     }
   } catch (e) {}
 
@@ -447,11 +431,23 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
     const passMatch = app.passport && app.passport.toUpperCase() === queryTerm
     const refMatch = app.reference_number && app.reference_number.toUpperCase() === queryTerm
     const visaMatch = app.visa_number && app.visa_number.toUpperCase() === queryTerm
-    return passMatch || refMatch || visaMatch
+    return (passMatch || refMatch || visaMatch) && matchesDob(app)
   })
 
   if (localMatch) {
     return { found: true, application: localMatch, source: 'local' }
+  }
+
+  // Also check without DOB restriction if exact reference/passport matched
+  const looseLocalMatch = localList.find((app) => {
+    const passMatch = app.passport && app.passport.toUpperCase() === queryTerm
+    const refMatch = app.reference_number && app.reference_number.toUpperCase() === queryTerm
+    const visaMatch = app.visa_number && app.visa_number.toUpperCase() === queryTerm
+    return passMatch || refMatch || visaMatch
+  })
+
+  if (looseLocalMatch) {
+    return { found: true, application: looseLocalMatch, source: 'local' }
   }
 
   // 3. Try matching in Supabase
@@ -469,48 +465,6 @@ export async function checkVisaStatus(passportOrRef, dob = '', refNum = '') {
     }
   } catch (err) {
     console.warn('Supabase lookup error:', err)
-  }
-
-  // 4. Default fallback matching default passport PA3726025
-  if (queryTerm === 'PA3726025' || queryTerm === '7209572') {
-    const defaultApp = INITIAL_DEMO_RECORDS[0]
-    return {
-      found: true,
-      application: defaultApp,
-      source: 'demo'
-    }
-  }
-
-  // 5. Generic demo result if at least 4 characters
-  if (queryTerm.length >= 4) {
-    const demoApp = {
-      reference_number: `CY-${Math.floor(10000 + Math.random() * 90000)}`,
-      visa_number: `E26-${Math.floor(100000 + Math.random() * 900000)}`,
-      full_name: 'DHANANJAYA RAI',
-      passport: queryTerm,
-      dob: dobClean || '25 Aug 2001',
-      nationality: 'NEPAL',
-      visa_type: 'Work Permit',
-      entries: 'Multiple',
-      duration: '365 days',
-      port_of_entry: 'Larnaca International Airport',
-      submitted_date: '12 Sept 2026',
-      decision_date: '15 Sept 2026',
-      issue_date: '15 Sept 2026',
-      expiry_date: '14 Sept 2027',
-      status: 'Approved',
-      admin_notes: 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.',
-      decision_pdf: null,
-      issuing_authority: 'Civil Registry and Migration Department, Republic of Cyprus',
-      created_at: new Date(Date.now() - 7 * 86400000).toISOString(),
-      updated_at: new Date().toISOString()
-    }
-
-    return {
-      found: true,
-      application: demoApp,
-      source: 'demo'
-    }
   }
 
   return { found: false }

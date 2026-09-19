@@ -11,7 +11,8 @@ import Modal from '../components/Modal'
 import {
   getAllApplications,
   updateFullApplication,
-  deleteApplication
+  deleteApplication,
+  formatDisplayDate
 } from '../services/visaService'
 import { SQL_SETUP_SCRIPT } from '../lib/supabase'
 
@@ -28,17 +29,17 @@ export default function AdminPanel({ onNavigate }) {
     return sessionStorage.getItem('cyprus_admin_session') === 'true'
   })
   const [adminLoginForm, setAdminLoginForm] = useState({ username: 'admin', password: '' })
-  const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState('')
   const [loginLoading, setLoginLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
-  // Dashboard state
+  // Applications Data State
   const [applications, setApplications] = useState([])
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState('local')
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [typeFilter, setTypeFilter] = useState('All')
-  const [source, setSource] = useState('supabase')
   
   // Selected application for detail & editing
   const [selectedApp, setSelectedApp] = useState(null)
@@ -120,20 +121,20 @@ export default function AdminPanel({ onNavigate }) {
     setEditForm({
       full_name: app.full_name || '',
       passport: app.passport || '',
-      dob: app.dob || '25 Aug 2001',
-      nationality: app.nationality || 'NEPAL',
-      visa_type: app.visa_type || 'Work Permit',
+      dob: app.dob || '',
+      nationality: app.nationality || '',
+      visa_type: app.visa_type || 'Tourist Visa',
       visa_number: app.visa_number || `E26-${Math.floor(100000 + Math.random() * 900000)}`,
-      reference_number: app.reference_number || `7209572`,
-      entries: app.entries || 'Multiple',
-      duration: app.duration || '365 days',
+      reference_number: app.reference_number || `CY-${Math.floor(10000 + Math.random() * 90000)}`,
+      entries: app.entries || 'Single',
+      duration: app.duration || '90 days',
       port_of_entry: app.port_of_entry || 'Larnaca International Airport',
-      submitted_date: app.submitted_date || '12 Sept 2026',
-      decision_date: app.decision_date || '15 Sept 2026',
-      issue_date: app.issue_date || '15 Sept 2026',
-      expiry_date: app.expiry_date || '14 Sept 2027',
-      status: app.status || 'Approved',
-      admin_notes: app.admin_notes || 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.',
+      submitted_date: app.submitted_date || (app.created_at ? formatDisplayDate(app.created_at) : formatDisplayDate(new Date())),
+      decision_date: app.decision_date || (app.status === 'Approved' ? formatDisplayDate(new Date()) : 'Pending'),
+      issue_date: app.issue_date || (app.status === 'Approved' ? formatDisplayDate(new Date()) : 'Pending'),
+      expiry_date: app.expiry_date || (app.status === 'Approved' ? formatDisplayDate(new Date(Date.now() + 365 * 86400000)) : ''),
+      status: app.status || 'Pending',
+      admin_notes: app.admin_notes || (app.status === 'Approved' ? 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.' : 'Application received and queued for review.'),
       decision_pdf: app.decision_pdf || null
     })
     setSaveSuccess(false)
@@ -142,24 +143,25 @@ export default function AdminPanel({ onNavigate }) {
   const handleCreateNew = () => {
     const randomRef = `B21-${Math.floor(10000 + Math.random() * 90000)}`
     const randomVisa = `E26-${Math.floor(100000 + Math.random() * 900000)}`
+    const todayFormatted = formatDisplayDate(new Date())
     const newTemplate = {
       id: `new-${Date.now()}`,
       reference_number: randomRef,
       visa_number: randomVisa,
       full_name: '',
       passport: '',
-      dob: '25 Aug 2001',
-      nationality: 'NEPAL',
-      visa_type: 'Work Permit',
-      entries: 'Multiple',
-      duration: '365 days',
+      dob: '',
+      nationality: '',
+      visa_type: 'Tourist Visa',
+      entries: 'Single',
+      duration: '90 days',
       port_of_entry: 'Larnaca International Airport',
-      submitted_date: '12 Sept 2026',
-      decision_date: '15 Sept 2026',
-      issue_date: '15 Sept 2026',
-      expiry_date: '14 Sept 2027',
-      status: 'Approved',
-      admin_notes: 'Your visa application has been approved. Please carry a printed copy of this confirmation along with your passport when travelling.',
+      submitted_date: todayFormatted,
+      decision_date: 'Pending',
+      issue_date: 'Pending',
+      expiry_date: '',
+      status: 'Pending',
+      admin_notes: 'Application received and queued for official review.',
       decision_pdf: null
     }
     setIsNewRecord(true)
