@@ -146,6 +146,7 @@ export default function CheckStatus({ onNavigate = () => {} }) {
   const [result, setResult] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const dateInputRef = useRef(null)
+  const hiddenDateRef = useRef(null)
 
   useEffect(() => {
     setCaptchaCode(generateCaptcha())
@@ -155,6 +156,36 @@ export default function CheckStatus({ onNavigate = () => {} }) {
     setCaptchaCode(generateCaptcha())
     setCaptchaInput('')
     setErrors((prev) => ({ ...prev, captcha: undefined }))
+  }
+
+  const handleOpenPicker = () => {
+    try {
+      if (hiddenDateRef.current && typeof hiddenDateRef.current.showPicker === 'function') {
+        hiddenDateRef.current.showPicker()
+      } else if (hiddenDateRef.current) {
+        hiddenDateRef.current.focus()
+        hiddenDateRef.current.click()
+      }
+    } catch (err) {
+      if (hiddenDateRef.current) {
+        hiddenDateRef.current.focus()
+      }
+    }
+  }
+
+  const handleDatePicked = (e) => {
+    const rawVal = e.target.value // e.g. "1995-05-15"
+    if (rawVal) {
+      const parts = rawVal.split('-')
+      if (parts.length === 3) {
+        // format as DD/MM/YYYY
+        const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`
+        setDob(formatted)
+      } else {
+        setDob(rawVal)
+      }
+      if (errors.dob) setErrors((p) => ({ ...p, dob: undefined }))
+    }
   }
 
   const validate = () => {
@@ -262,8 +293,8 @@ export default function CheckStatus({ onNavigate = () => {} }) {
                       setPassport(e.target.value.toUpperCase())
                       if (errors.passport) setErrors((p) => ({ ...p, passport: undefined }))
                     }}
-                    placeholder="e.g. K1234567"
-                    className={`w-full px-3.5 py-2.5 text-sm bg-white border rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600/30 transition-colors ${
+                    placeholder="e.g. PA3726025"
+                    className={`w-full px-3.5 py-2.5 text-sm bg-white border rounded-lg text-slate-900 font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600/30 transition-colors ${
                       errors.passport ? 'border-rose-500 ring-1 ring-rose-400' : 'border-slate-300 focus:border-sky-600'
                     }`}
                   />
@@ -291,18 +322,27 @@ export default function CheckStatus({ onNavigate = () => {} }) {
                         if (errors.dob) setErrors((p) => ({ ...p, dob: undefined }))
                       }}
                       placeholder="dd/mm/yyyy"
-                      className={`w-full px-3.5 py-2.5 pr-10 text-sm bg-white border rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600/30 transition-colors ${
+                      className={`w-full px-3.5 py-2.5 pr-11 text-sm bg-white border rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-600/30 transition-colors ${
                         errors.dob ? 'border-rose-500 ring-1 ring-rose-400' : 'border-slate-300 focus:border-sky-600'
                       }`}
                     />
+
+                    {/* Native date picker input */}
+                    <input
+                      type="date"
+                      ref={hiddenDateRef}
+                      onChange={handleDatePicked}
+                      className="sr-only absolute opacity-0 pointer-events-none w-0 h-0"
+                      tabIndex={-1}
+                      aria-hidden="true"
+                    />
+
                     <button
                       type="button"
-                      onClick={() => {
-                        const today = new Date().toISOString().split('T')[0]
-                        if (!dob) setDob('15/05/1990')
-                      }}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800"
-                      title="Calendar"
+                      onClick={handleOpenPicker}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-500 hover:text-sky-700 hover:bg-slate-100 rounded-md transition-colors cursor-pointer"
+                      title="Open Calendar"
+                      aria-label="Open Calendar"
                     >
                       <Calendar size={18} />
                     </button>
